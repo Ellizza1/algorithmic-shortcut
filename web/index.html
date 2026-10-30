@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Visualizer ⚡ Go Engine</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Боковая панель управления (HUD) -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">
+                    <h1>MAZE<span class="highlight">CORE</span></h1>
+                    <span class="subtext">Go Graph Engine v2.0</span>
+                </div>
+            </div>
+
+            <!-- Секция: Генератор -->
+            <div class="panel-section">
+                <label class="section-title">
+                    <span class="badge badge-gen">1</span> Алгоритм генерации
+                </label>
+                <div class="select-wrapper">
+                    <select id="genAlgorithm">
+                        <option value="backtracker" selected>Recursive Backtracker (DFS)</option>
+                        <option value="prim">Randomized Prim's (MST)</option>
+                        <option value="kruskal">Randomized Kruskal's (DSU)</option>
+                    </select>
+                </div>
+                <div class="algo-hint" id="genHint">
+                    Глубокий обход со стеком: строит длинные, извилистые коридоры с высоким коэффициентом блуждания.
+                </div>
+                <button id="btnGenerate" class="btn btn-primary glow-cyan">
+                    <span>⚡ Генерировать лабиринт</span>
+                </button>
+            </div>
+
+            <!-- Секция: Поиск пути -->
+            <div class="panel-section">
+                <label class="section-title">
+                    <span class="badge badge-solve">2</span> Алгоритм решения
+                </label>
+                <div class="select-wrapper">
+                    <select id="solveAlgorithm">
+                        <option value="astar" selected>A* (Manhattan Heuristic)</option>
+                        <option value="bfs">Breadth-First Search (BFS)</option>
+                        <option value="dijkstra">Dijkstra's Algorithm</option>
+                    </select>
+                </div>
+                <div class="algo-hint" id="solveHint">
+                    Оптимизированный волновой луч: эвристика Манхэттена направляет фронт точно в сторону финиша.
+                </div>
+                <button id="btnSolve" class="btn btn-success glow-emerald">
+                    <span>🧭 Найти кратчайший путь</span>
+                </button>
+            </div>
+
+            <!-- Секция: Настройки и параметры -->
+            <div class="panel-section">
+                <label class="section-title">⚙️ Параметры сетки</label>
+                
+                <div class="control-row">
+                    <span class="control-label">Размер сетки:</span>
+                    <span class="control-val" id="valGridSize">25 × 25</span>
+                </div>
+                <input type="range" id="sliderGridSize" min="11" max="51" step="2" value="25">
+
+                <div class="control-row">
+                    <span class="control-label">Скорость анимации:</span>
+                    <span class="control-val" id="valSpeed">Нормальная (×5)</span>
+                </div>
+                <input type="range" id="sliderSpeed" min="1" max="100" step="1" value="35">
+            </div>
+
+            <!-- Секция: Интерактивное управление -->
+            <div class="panel-section">
+                <label class="section-title">🎮 Управление воспроизведением</label>
+                <div class="btn-group">
+                    <button id="btnPausePlay" class="btn btn-secondary" title="Пауза / Продолжить">
+                        <span id="iconPausePlay">⏸️ Пауза</span>
+                    </button>
+                    <button id="btnStep" class="btn btn-secondary" title="Сделать 1 шаг">
+                        <span>⏭️ Шаг</span>
+                    </button>
+                </div>
+                <div class="btn-group">
+                    <button id="btnClearSolution" class="btn btn-outline" title="Стереть путь и волну">
+                        <span>🧹 Стереть путь</span>
+                    </button>
+                    <button id="btnReset" class="btn btn-outline" title="Полный сброс сетки">
+                        <span>🔄 Сброс</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Статистика и метрики -->
+            <div class="panel-section stats-card">
+                <div class="stats-header">
+                    <span>📊 Метрики в реальном времени</span>
+                    <span id="connStatus" class="status-indicator online">ONLINE</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-num" id="statVisited">0</div>
+                        <div class="stat-lbl">Посещено узлов</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="statFrontier">0</div>
+                        <div class="stat-lbl">Фронтир / Стек</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num highlight-gold" id="statPathLen">0</div>
+                        <div class="stat-lbl">Длина пути</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="statTime">0 ms</div>
+                        <div class="stat-lbl">Время работы</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Главное полотно визуализации -->
+        <main class="viewport">
+            <div class="hud-top">
+                <div class="hud-pill" id="hudStatus">
+                    <span class="pulse-dot"></span>
+                    <span id="statusText">Готов к генерации лабиринта</span>
+                </div>
+                <div class="hud-legend">
+                    <span class="legend-item"><span class="legend-color color-start"></span> Старт</span>
+                    <span class="legend-item"><span class="legend-color color-goal"></span> Финиш</span>
+                    <span class="legend-item"><span class="legend-color color-wave"></span> Волновой фронт</span>
+                    <span class="legend-item"><span class="legend-color color-path"></span> Кратчайший путь</span>
+                </div>
+            </div>
+
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="mazeCanvas"></canvas>
+            </div>
+
+            <div class="hud-bottom" id="hudMessage">
+                Лабиринт инициализирован. Выберите алгоритм и нажмите «Генерировать лабиринт».
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
